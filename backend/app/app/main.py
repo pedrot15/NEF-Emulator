@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from starlette.middleware.cors import CORSMiddleware
-from app.api.api_v1.api import api_router, nef_router, tests_router
+from app.api.api_v1.api import api_router, nef_router, tests_router, camaraAPI_router
 from app.tools.ue_movement_utils.real_ue import consume_from_rabbitmq
 from app.core.config import settings
 import time
@@ -48,6 +48,12 @@ async def add_process_time_header(request: Request, call_next):
 testapi = FastAPI(title="Test APIs", openapi_prefix="/test")
 testapi.include_router(tests_router, prefix=settings.API_V1_STR)
 app.mount("/test", testapi)
+
+# ================================= Sub Application - Camara APIs =================================
+
+camara_api = FastAPI(title="Camara APIs", openapi_prefix="/camaraAPI")
+camara_api.include_router(camaraAPI_router, prefix=settings.API_V1_STR)
+app.mount("/camaraAPI", camara_api)
 
 # ================================= Static Page routes =================================
 

@@ -10,3 +10,4 @@ from .qosInformation import router
 from .qosMonitoring import router
 from .monitoringevent import router
 from .tests import router
+from .devicelocation import router
