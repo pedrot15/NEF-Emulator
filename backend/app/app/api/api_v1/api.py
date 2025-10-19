@@ -21,7 +21,6 @@ api_router.include_router(endpoints.qosInformation.router, prefix="/qosInfo", ta
 nef_router = APIRouter()
 nef_router.include_router(endpoints.monitoringevent.router, prefix="/3gpp-monitoring-event/v1", tags=["Monitoring Event API"])
 nef_router.include_router(endpoints.qosMonitoring.router, prefix="/3gpp-as-session-with-qos/v1", tags=["Session With QoS API"])
-
     # ---Create a subapp---
 tests_router = APIRouter()
 tests_router.include_router(endpoints.tests.router, prefix="/UEs", tags=["Test API"])

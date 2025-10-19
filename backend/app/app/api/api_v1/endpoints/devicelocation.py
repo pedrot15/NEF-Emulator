@@ -31,7 +31,7 @@ class CircleAreaModel(BaseModel):
 # ===== LOCATION RETRIEVAL MODELS =====
 
 class RetrievalDeviceModel(BaseModel):
-    networkAccessIdentifier: Optional[str] = Field(None, example="IMSI123456789012345")
+    networkAccessIdentifier: Optional[str] = Field(None, example="202010000000001")
 
 class RetrievalLocationRequest(BaseModel):
     device: Optional[RetrievalDeviceModel] = None
@@ -45,7 +45,7 @@ class RetrievalLocationResponse(BaseModel):
 # ===== LOCATION VERIFICATION MODELS =====
 
 class LocationVerificationDeviceModel(BaseModel):
-    networkAccessIdentifier: Optional[str] = Field(None, example="IMSI123456789012345")
+    networkAccessIdentifier: Optional[str] = Field(None, example="202010000000001")
     supi: Optional[str] = None
 
 class LocationVerificationAreaModel(BaseModel):
@@ -75,6 +75,9 @@ def get_ue_location(supi: str, db: Session):
     try:
         # Use the same CRUD function as the UE endpoint
         ue = crud.ue.get_supi(db=db, supi=supi)
+        logger.info(f"Looking for UE with SUPI: {supi}, found: {ue is not None}")
+        if ue:
+            logger.info(f"UE details - lat: {ue.latitude}, lon: {ue.longitude}, owner_id: {ue.owner_id}")
         if not ue:
             return None
             
@@ -83,7 +86,7 @@ def get_ue_location(supi: str, db: Session):
         return {
             "latitude": ue.latitude,
             "longitude": ue.longitude,
-            "last_updated": ue.updated_at or datetime.now(timezone.utc)
+            "last_updated": datetime.now(timezone.utc)
         }
     except Exception as e:
         logger.error(f"Error getting UE location for {supi}: {e}")
