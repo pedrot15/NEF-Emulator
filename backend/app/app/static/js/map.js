@@ -274,11 +274,11 @@ function ui_initialize_map() {
     $('#mapid').css({"height": window.innerHeight * 0.65} );
 
     var mbAttr = 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
-                'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-        mbUrl = 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiYW5pdGF6IiwiYSI6ImNsazB5Y2FvcjAwYTAzaG92bW1rbGF0ejAifQ.T2B1BOquKSmdaUc3be6k8Q';
+                'Tiles courtesy of OpenStreetMap',
+        mbUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-    var grayscale   = L.tileLayer(mbUrl, {id: 'mapbox/light-v9',    tileSize: 512, zoomOffset: -1, attribution: mbAttr, maxZoom: 23}),
-        streets     = L.tileLayer(mbUrl, {id: 'mapbox/streets-v11', tileSize: 512, zoomOffset: -1, attribution: mbAttr, maxZoom: 23});
+    var grayscale   = L.tileLayer(mbUrl, { attribution: mbAttr, maxZoom: 23, maxNativeZoom: 19}),
+        streets     = L.tileLayer(mbUrl, { attribution: mbAttr, maxZoom: 23, maxNativeZoom: 19});
 
 
     // map initialization
