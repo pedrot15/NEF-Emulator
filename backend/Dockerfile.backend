@@ -1,4 +1,5 @@
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.9
+# Pinned by digest: the python3.9 tag is no longer maintained upstream (last push 2025-11-09).
+FROM tiangolo/uvicorn-gunicorn-fastapi:python3.9@sha256:447693150f3b9224a1dc52218cf536f6065f918f3518f0c135a63f71303da260
 
 WORKDIR /app/
 
