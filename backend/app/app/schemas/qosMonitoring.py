@@ -1,6 +1,6 @@
 from threading import Event
 from typing import List, Optional
-from pydantic import BaseModel, Field, IPvAnyAddress, AnyHttpUrl, constr
+from pydantic import BaseModel, Field, IPvAnyAddress, AnyHttpUrl, constr, root_validator
 from enum import Enum
 
 class Snssai(BaseModel):
@@ -31,6 +31,13 @@ class QosMonitoringInformation(BaseModel):
     latThreshRp: int = Field(None, description="Threshold in units of milliseconds for round trip packet delay", ge=0)
     waitTime: int = Field(None, description="Indicates the minimum waiting time (seconds) between subsequent reports. Only applicable when the \"repFreqs\" attribute includes \"EVENT_TRIGGERED\".")
     repPeriod: int = Field(None, description="Indicates the time interval (seconds) between successive reporting. Only applicable when the \"repFreqs\" attribute includes\"PERIODIC\".")
+
+    @root_validator(skip_on_failure=True)
+    def rep_period_required_for_periodic(cls, values):
+        # repPeriod only applies to PERIODIC reporting and is needed to schedule it.
+        if "PERIODIC" in (values.get("repFreqs") or []) and values.get("repPeriod") is None:
+            raise ValueError('"repPeriod" is required when "repFreqs" includes "PERIODIC"')
+        return values
 
 class SponsorInfo(BaseModel):
     pass

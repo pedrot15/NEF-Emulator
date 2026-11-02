@@ -239,8 +239,9 @@ class BackgroundTasks(threading.Thread):
                     if qos_sub:
                         active_subscriptions.update({"as_session_with_qos": True})
                         reporting_freq = qos_sub["qosMonInfo"]["repFreqs"]
-                        reporting_period = qos_sub["qosMonInfo"]["repPeriod"]
+                        # repPeriod is only applicable to (and required for) PERIODIC reporting.
                         if "PERIODIC" in reporting_freq:
+                            reporting_period = qos_sub["qosMonInfo"]["repPeriod"]
                             rt = timer.RepeatedTimer(
                                 reporting_period,
                                 qos_callback.qos_notification_control,
@@ -251,10 +252,10 @@ class BackgroundTasks(threading.Thread):
                             )
                             # qos_callback.qos_notification_control(qos_sub, ues[f"{supi}"]["ip_address_v4"], ues.copy(),  ues[f"{supi}"])
 
-                # If the document exists then validate the owner
-                if not is_superuser and (qos_sub["owner_id"] != current_user.id):
-                    logging.warning("Not enough permissions")
-                    active_subscriptions.update({"as_session_with_qos": False})
+                        # If the document exists then validate the owner
+                        if not is_superuser and (qos_sub["owner_id"] != current_user.id):
+                            logging.warning("Not enough permissions")
+                            active_subscriptions.update({"as_session_with_qos": False})
                 # As Session With QoS API - search for active subscription in db
 
                 if cell_now is not None:
