@@ -84,14 +84,13 @@ def create_subscription(
         json_compatible_item_data["externalId"] = item_in.externalId
         json_compatible_item_data["ipv4Addr"] = UE.ip_address_v4
 
-        if UE.Cell != None:
-            #If ue is moving retieve ue's information from memory else retrieve info from db
-            if retrieve_ue_state(supi=UE.supi, user_id=current_user.id):
-                cell_id_hex = retrieve_ue(UE.supi).get("cell_id_hex")
-                gnb_id_hex = retrieve_ue(UE.supi).get("gnb_id_hex")
-                json_compatible_item_data["locationInfo"] = {'cellId' : cell_id_hex, 'gNBId' : gnb_id_hex}
-            else:
-                json_compatible_item_data["locationInfo"] = {'cellId' : UE.Cell.cell_id, 'gNBId' : UE.Cell.gNB.gNB_id}
+        # A moving UE keeps its current serving cell in the simulation memory; the DB is only updated when
+        # the movement stops. Read the memory first, so a UE that has no Cell_id in the DB yet is still located.
+        if retrieve_ue_state(supi=UE.supi, user_id=current_user.id):
+            moving_ue = retrieve_ue(UE.supi)
+            json_compatible_item_data["locationInfo"] = {'cellId' : moving_ue.get("cell_id_hex"), 'gNBId' : moving_ue.get("gnb_id_hex")}
+        elif UE.Cell != None:
+            json_compatible_item_data["locationInfo"] = {'cellId' : UE.Cell.cell_id, 'gNBId' : UE.Cell.gNB.gNB_id}
         else:
             json_compatible_item_data["locationInfo"] = {'cellId' : None, 'gNBId' : None}
 
