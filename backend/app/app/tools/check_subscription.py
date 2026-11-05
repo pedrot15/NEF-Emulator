@@ -3,6 +3,9 @@ import time
 from app.crud import crud_mongo
 
 def check_expiration_time(expire_time):
+    # monitorExpireTime is optional: TS 29.122 requires maximumNumberOfReports or monitorExpireTime.
+    if expire_time is None:
+        return True
     year = int(expire_time[0:4])
     month = int(expire_time[5:7])
     day = int(expire_time[8:10])
