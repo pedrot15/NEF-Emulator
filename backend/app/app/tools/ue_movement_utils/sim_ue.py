@@ -188,11 +188,13 @@ class BackgroundTasks(threading.Thread):
                                         loss_of_connectivity_sub.get("link"),
                                     )
 
-                                    logging.critical(response.json())
-                                    # This ack is used to send one time the loss of connectivity callback
-                                    loss_of_connectivity_ack = response.json().get(
-                                        "ack"
-                                    )
+                                    # This ack is used to send one time the loss of connectivity callback.
+                                    # A notification receiver may answer 204 No Content (TS 29.122), so a
+                                    # missing or non-JSON body counts as acknowledged instead of raising.
+                                    try:
+                                        loss_of_connectivity_ack = response.json().get("ack", "TRUE")
+                                    except ValueError:
+                                        loss_of_connectivity_ack = "TRUE"
 
                                     loss_of_connectivity_sub.update(
                                         {
