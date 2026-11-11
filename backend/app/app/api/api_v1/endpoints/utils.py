@@ -1,5 +1,5 @@
 from datetime import datetime
-import logging, requests, json
+import logging, os, requests, json, tempfile
 from typing import Any, Callable
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse
@@ -14,6 +14,7 @@ from app.api.api_v1.endpoints.paths import get_random_point
 from app.tools.ue_movement_utils.common import retrieve_ue_state
 from fastapi.routing import APIRoute
 from json import JSONDecodeError
+from starlette.datastructures import FormData
 from app.core.config import settings
 
 #List holding notifications from 
@@ -287,6 +288,56 @@ def get_last_notifications(
     
     return updated_notification
 
+# Form fields never written to the request report (OAuth2 password flow, RFC 6749 §4.3).
+_REPORT_REDACTED_FIELDS = {"password", "client_secret"}
+
+
+def _report_json_default(value: Any) -> Any:
+    """JSON fallback for request bodies that are not JSON, e.g. the form of a failed login (N8)."""
+    if isinstance(value, FormData):
+        return {key: ("<redacted>" if key in _REPORT_REDACTED_FIELDS else str(item))
+                for key, item in value.multi_items()}
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return str(value)
+
+
+def append_report_entry(log_entry: dict) -> None:
+    """Append one entry to the request report (settings.REPORT_PATH) without ever failing the request (N8).
+
+    - Bodies that are not JSON (e.g. form data) are stored as JSON, with credentials redacted.
+    - The file is rewritten atomically (temporary file + os.replace), so it is never left truncated.
+    - An unreadable report is kept aside (renamed with a timestamp) and a new one is started.
+    - Any failure is logged; the API request itself is not affected.
+    """
+    path = settings.REPORT_PATH
+    try:
+        try:
+            with open(path) as fp:
+                entries = json.load(fp)
+        except FileNotFoundError:
+            entries = []
+        except JSONDecodeError:
+            kept = f"{path}.corrupt-{datetime.utcnow().strftime('%Y%m%dT%H%M%S%f')}"
+            os.replace(path, kept)
+            logging.error("Request report was unreadable; kept as %s and restarted", kept)
+            entries = []
+        entries.append(log_entry)
+        payload = json.dumps(entries, indent=4, separators=(',', ': '), default=_report_json_default)
+        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".", prefix=".report-", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w") as fp:
+                fp.write(payload)
+            os.chmod(tmp, 0o644)
+            os.replace(tmp, path)
+        except BaseException:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+            raise
+    except Exception:
+        logging.exception("Could not append to the request report %s", path)
+
+
 class ReportLogging(APIRoute):
 
     def get_route_handler(self) -> Callable:
@@ -337,17 +388,7 @@ class ReportLogging(APIRoute):
                     **extra_fields
                 }
                 
-                listObj = []
-                # Read JSON file
-                with open(settings.REPORT_PATH) as fp:
-                    listObj = json.load(fp)
-
-                listObj.append(log_entry)
-
-                with open(settings.REPORT_PATH, 'w') as json_file:
-                    json.dump(listObj, json_file, 
-                        indent=4,  
-                        separators=(',',': '))
+                append_report_entry(log_entry)
 
                 return response
             except RequestValidationError as exc:
@@ -383,17 +424,7 @@ class ReportLogging(APIRoute):
                     **extra_fields
                 }
                 
-                listObj = []
-                # Read JSON file
-                with open(settings.REPORT_PATH) as fp:
-                    listObj = json.load(fp)
-
-                listObj.append(log_entry)
-
-                with open(settings.REPORT_PATH, 'w') as json_file:
-                    json.dump(listObj, json_file, 
-                        indent=4,  
-                        separators=(',',': '))
+                append_report_entry(log_entry)
                 
                 raise HTTPException(status_code=status_code, detail= exc.errors())
             except HTTPException as exc:
@@ -428,17 +459,7 @@ class ReportLogging(APIRoute):
                     **extra_fields
                 }
                 
-                listObj = []
-                # Read JSON file
-                with open(settings.REPORT_PATH) as fp:
-                    listObj = json.load(fp)
-
-                listObj.append(log_entry)
-
-                with open(settings.REPORT_PATH, 'w') as json_file:
-                    json.dump(listObj, json_file, 
-                        indent=4,  
-                        separators=(',',': '))
+                append_report_entry(log_entry)
                 
                 raise HTTPException(status_code=exc.status_code, detail=exc.detail)
 
